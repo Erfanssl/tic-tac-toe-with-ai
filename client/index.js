@@ -118,6 +118,14 @@ function aiMove() {
         opponent: playersChoices[players.filter(p => p !== playerTurn)[0]]
     };
 
+    // this part should change, it handles the cross trap
+    const opponentMoves = [ ...playerMoves.opponent ].sort();
+    const opponentCrossChoices = ['19', '37'];
+    if (opponentCrossChoices.includes(opponentMoves.join(''))) {
+        const options = [2, 4, 6, 8];
+        return options[Math.floor(Math.random() * options.length)];
+    }
+
     // check to see if there is any direct win for these available moves
     for (let i = 0; i < availableMoves.length; i++) {
         const res = checkResult([ ...aiMoves, availableMoves[i] ]);
