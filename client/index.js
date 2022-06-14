@@ -118,8 +118,14 @@ function aiMove() {
         opponent: playersChoices[players.filter(p => p !== playerTurn)[0]]
     };
 
-    // this part should change, it handles the cross trap
+    // this part should change, it handles the cross and rhombus trap
     const opponentMoves = [ ...playerMoves.opponent ].sort();
+
+    if (opponentMoves.join('') === '24') return 1;
+    if (opponentMoves.join('') === '26') return 3;
+    if (opponentMoves.join('') === '48') return 7;
+    if (opponentMoves.join('') === '68') return 9;
+
     const opponentCrossChoices = ['19', '37'];
     if (opponentCrossChoices.includes(opponentMoves.join(''))) {
         const options = [2, 4, 6, 8];
