@@ -53,7 +53,7 @@ squares.forEach(square => {
 });
 
 
-function checkResult(choices) {
+function checkResult(choices, playersChoices) {
     let found = 0;
     let over = false;
 
@@ -80,7 +80,7 @@ function checkResult(choices) {
 }
 
 function showResult(choices, playerTurn) {
-    const res = checkResult(choices);
+    const res = checkResult(choices, playersChoices);
 
     if (res === 1) {
         boardEnd.classList.remove('hide');
@@ -118,79 +118,59 @@ function aiMove() {
         opponent: playersChoices[players.filter(p => p !== playerTurn)[0]]
     };
 
-    // this part should change, it handles the cross and rhombus trap
-    const opponentMoves = [ ...playerMoves.opponent ].sort();
-
-    if (opponentMoves.join('') === '24') return 1;
-    if (opponentMoves.join('') === '26') return 3;
-    if (opponentMoves.join('') === '48') return 7;
-    if (opponentMoves.join('') === '68') return 9;
-
-    const opponentCrossChoices = ['19', '37'];
-    if (opponentCrossChoices.includes(opponentMoves.join(''))) {
-        const options = [2, 4, 6, 8];
-        return options[Math.floor(Math.random() * options.length)];
-    }
-
-    // check to see if there is any direct win for these available moves
-    for (let i = 0; i < availableMoves.length; i++) {
-        const res = checkResult([ ...aiMoves, availableMoves[i] ]);
-        if (res === 1) return availableMoves[i];
-    }
-
-    // check to see if there is any direct win for the opponent to stop that move
-    for (let i = 0; i < availableMoves.length; i++) {
-        const opponentRes = checkResult([ ...playerMoves.opponent, availableMoves[i] ]);
-        if (opponentRes === 1) return availableMoves[i];
-    }
-
-    // now we start the prediction
-    for (let i = 0; i < availableMoves.length; i++) {
-        predict(availableMoves[i], playerMoves, availableMoves[i], 'ai');
-    }
-
     function predict(root, playerMoves, currentMove, turn) {
         // evaluate the current move for whose turn it is
         const newPlayerMoves = JSON.parse(JSON.stringify(playerMoves));
         newPlayerMoves[turn].push(currentMove);
-        const eval = checkResult(newPlayerMoves[turn]);
+        const eval = checkResult(newPlayerMoves[turn], newPlayerMoves);
 
         if (eval === 1) {
-            if (turn === 'ai') return movesWithScore[root] = movesWithScore[root] + 1;
-            else return movesWithScore[root] = movesWithScore[root] - 1;
+            if (turn === 'ai') return 1;
+            else return -1;
         }
 
-        else if (eval === 0) return;
+        else if (eval === 0) return 0;
 
         // Now we check what available moves are now for the other player
         const movesDoneSoFar = Object.values(newPlayerMoves).flat();
         const currentAvailableMoves = allPossibleMoves.filter(p => !movesDoneSoFar.includes(p));
 
+        const results = [];
+        turn = turn === 'ai' ? 'opponent' : 'ai';
         for (let i = 0; i < currentAvailableMoves.length; i++) {
-            predict(root, newPlayerMoves, currentAvailableMoves[i], turn === 'ai' ? 'opponent' : 'ai');
+            const res = predict(root, newPlayerMoves, currentAvailableMoves[i], turn);
+            results.push(res);
         }
+
+        if (turn === 'ai') return Math.max(...results);
+        else return Math.min(...results);
     }
 
-    // we extract the best score from movesWithScore to return
-    let highest = -Infinity;
-    let aiChoice = null;
-
-    for (let choice in movesWithScore) {
-        if (movesWithScore[choice] > highest) {
-            highest = movesWithScore[choice];
-            aiChoice = choice;
-        }
+    // check to see if there is any direct win for these available moves
+    for (let i = 0; i < availableMoves.length; i++) {
+        const res = checkResult([ ...aiMoves, availableMoves[i] ], playersChoices);
+        if (res === 1) return availableMoves[i];
     }
 
-    // we want to choose randomly among those which has the same number
-    const sameWeightedChoices = [];
-    for (let choice in movesWithScore) {
-        if (movesWithScore[choice] === highest) sameWeightedChoices.push(choice);
+    // check to see if there is any direct win for the opponent to stop that move
+    for (let i = 0; i < availableMoves.length; i++) {
+        const opponentRes = checkResult([ ...playerMoves.opponent, availableMoves[i] ], playersChoices);
+        if (opponentRes === 1) return availableMoves[i];
     }
 
-    if (sameWeightedChoices.length >= 2) {
-        return sameWeightedChoices[Math.floor(Math.random() * sameWeightedChoices.length)];
+    // now we start the prediction
+    const choices = {};
+    for (let i = 0; i < availableMoves.length; i++) {
+        const res = predict(availableMoves[i], playerMoves, availableMoves[i], 'ai');
+        choices[availableMoves[i]] = res;
     }
 
-    return parseInt(aiChoice);
+    const bestResult = Math.max(...Object.values(choices));
+    for (const choice in choices) {
+        if (choices[choice] !== bestResult) delete choices[choice];
+    }
+
+    // now we can return the best choice (if it's only one and if multiple we can return randomly)
+    const choicesArr = Object.keys(choices);
+    return choicesArr[Math.floor(Math.random() * choicesArr.length)];
 }
