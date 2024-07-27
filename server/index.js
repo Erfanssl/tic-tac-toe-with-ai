@@ -11,7 +11,7 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(clientPath, 'index.html'));
 });
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 9000;
 
 app.listen(port, () => {
     console.log('Server is up on port ' + port);
